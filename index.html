@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jejak Petualang Cerita Nusantara - Peta Harta Karun Interaktif</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800;900&family=Fredoka:wght@400;500;600;700&family=Pangolin&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        terracotta: {
+                            50: '#fdf8f6',
+                            100: '#fbf0eb',
+                            200: '#f6dccf',
+                            300: '#efbeab',
+                            400: '#e59779',
+                            500: '#d9724d',
+                            600: '#c85a32', /* Main Terracotta */
+                            700: '#a64426',
+                            800: '#893a23',
+                            900: '#703322',
+                        },
+                        sand: {
+                            50: '#fffdfa',
+                            100: '#fdf8ed',
+                            200: '#f7edda',
+                            300: '#eedab9',
+                            400: '#e2c293',
+                            500: '#d7aa6e',
+                        },
+                        pirateWood: '#4a2c11',
+                        pirateDark: '#2d1a0a',
+                        oceanBlue: '#1f4e5b',
+                        oceanDeep: '#112d35',
+                        goldYellow: '#f59e0b',
+                    },
+                    fontFamily: {
+                        title: ['Cinzel', 'serif'],
+                        cartoon: ['Fredoka', 'sans-serif'],
+                        story: ['Pangolin', 'cursive'],
+                        body: ['Plus Jakarta Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #2d1a0a;
+            color: #2d1a0a;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        .parchment-bg {
+            background-color: #fdf8ed;
+            background-image: radial-gradient(#e2c293 0.8px, transparent 0.8px), radial-gradient(#e2c293 0.8px, #fdf8ed 0.8px);
+            background-size: 32px 32px;
+            background-position: 0 0, 16px 16px;
+        }
+
+        .map-sea-bg {
+            background: radial-gradient(circle at center, rgba(31, 78, 91, 0.75) 0%, rgba(17, 45, 53, 0.95) 100%),
+                        url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><path d="M 0,50 Q 50,30 100,50 T 200,50 M 0,150 Q 50,130 100,150 T 200,150" fill="none" stroke="%2338bdf8" stroke-width="1" opacity="0.15"/><path d="M20 100 C40 80, 80 80, 100 100 C120 120, 160 120, 180 100" fill="none" stroke="%23f59e0b" stroke-width="0.8" opacity="0.12"/><g opacity="0.15" fill="%230f172a"><path d="M30 40 Q 45 25 60 40 Q 50 45 30 40 Z"/><path d="M140 160 Q 160 140 180 160 Q 160 170 140 160 Z"/></g></svg>');
+            background-color: #0f2b32;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f7edda;
+            border-radius: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #c85a32;
+            border-radius: 8px;
+            border: 2px solid #f7edda;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #a64426;
+        }
+
+        @keyframes bobbing {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-7px) rotate(2deg); }
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 18px rgba(245, 158, 11, 0.8); transform: scale(1); }
+            50% { box-shadow: 0 0 35px rgba(245, 158, 11, 1); transform: scale(1.06); }
+        }
+
+        .ship-bobbing {
+            animation: bobbing 3.5s ease-in-out infinite;
+        }
+
+        .glow-active {
+            animation: pulseGlow 1.8s infinite;
+        }
+
+        .text-shadow-pirate {
+            text-shadow: 2px 2px 0px #4a2c11, -1px -1px 0px #4a2c11, 1px -1px 0px #4a2c11, -1px 1px 0px #4a2c11;
+        }
+
+        /* SVG Map Trail styling */
+        .treasure-path {
+            stroke: #d9724d;
+            stroke-dasharray: 10 10;
+            stroke-width: 5;
+            animation: dashMove 30s linear infinite;
+        }
+
+        @keyframes dashMove {
+            to { stroke-dashoffset: -1000; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col font-body antialiased">
+
+    <header class="bg-pirateWood border-b-4 border-amber-600 text-amber-100 shadow-2xl sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 py-2 flex flex-wrap items-center justify-between gap-3">
+            
+            <!-- App Branding -->
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-full bg-terracotta-600 border-2 border-amber-300 flex items-center justify-center text-amber-200 text-2xl shadow-inner ship-bobbing">
+                    <i class="fa-solid fa-skull-crossbones"></i>
+                </div>
+                <div>
+                    <h1 class="font-title text-lg md:text-xl font-bold tracking-wide text-amber-300 drop-shadow">
+                        Jejak Petualang Cerita Nusantara
+                    </h1>
+                    <p class="text-xs text-amber-200/90 font-medium flex items-center gap-1">
+                        <i class="fa-solid fa-compass text-terracotta-400"></i>
+                        Peta Harta Karun Bajak Laut SD
+                    </p>
+                </div>
+            </div>
+
+            <!-- Stats Tracker -->
+            <div class="flex items-center gap-2 md:gap-4 bg-pirateDark/90 px-4 py-1.5 rounded-full border border-amber-500/50 text-xs md:text-sm font-cartoon">
+                <div class="flex items-center gap-1.5 bg-amber-950 px-3 py-1 rounded-full border border-amber-500/50">
+                    <i class="fa-solid fa-coins text-amber-400 text-base animate-bounce"></i>
+                    <span id="stat-gold" class="text-amber-300 font-bold text-sm">0</span>
+                    <span class="text-amber-200/70 text-xs">Emas</span>
+                </div>
+                <div class="flex items-center gap-1.5 bg-amber-950 px-3 py-1 rounded-full border border-amber-500/50">
+                    <i class="fa-solid fa-star text-yellow-400 text-base"></i>
+                    <span id="stat-score" class="text-yellow-300 font-bold text-sm">0</span>
+                    <span class="text-amber-200/70 text-xs">Poin</span>
+                </div>
+                <div class="flex items-center gap-1.5 bg-amber-950 px-3 py-1 rounded-full border border-amber-500/50">
+                    <i class="fa-solid fa-map-location-dot text-terracotta-400 text-base"></i>
+                    <span id="stat-progress" class="text-terracotta-200 font-bold text-sm">0/30</span>
+                    <span class="text-amber-200/70 text-xs hidden sm:inline">Pulau</span>
+                </div>
+            </div>
+
+            <!-- Top Action Buttons -->
+            <div class="flex items-center gap-2">
+                <button onclick="openMateriModal()" class="bg-terracotta-600 hover:bg-terracotta-500 text-white font-cartoon text-xs md:text-sm px-3.5 py-1.5 rounded-lg border-2 border-amber-300 shadow transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-book-open text-amber-200"></i>
+                    <span>Materi Cerita</span>
+                </button>
+                <button onclick="toggleAudio()" class="bg-amber-800 hover:bg-amber-700 text-amber-200 p-2 rounded-lg border border-amber-500 transition" title="Suara / Musik">
+                    <i id="sound-icon" class="fa-solid fa-volume-high"></i>
+                </button>
+                <button onclick="openProfileModal()" class="bg-amber-800 hover:bg-amber-700 text-amber-200 p-2 rounded-lg border border-amber-500 transition" title="Profil Pengembang">
+                    <i class="fa-solid fa-user-gear"></i>
+                </button>
+            </div>
+
+        </div>
+    </header>
+
+    <section class="bg-terracotta-700 text-amber-100 py-1.5 px-4 text-center border-b border-terracotta-800 shadow-inner text-xs md:text-sm font-medium">
+        <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-center gap-x-6 gap-y-1">
+            <span><i class="fa-solid fa-user-pen text-amber-400 mr-1"></i> <strong>Pengembang Media:</strong> Guyub Tri Salaswati, S.Pd.Gr.</span>
+            <span><i class="fa-solid fa-school text-amber-400 mr-1"></i> <strong>Instansi:</strong> SD Negeri 2 Penantian</span>
+            <span class="hidden md:inline"><i class="fa-solid fa-gem text-amber-400 mr-1"></i> Media Pembelajaran Interaktif Soal HOTS Kelas SD</span>
+        </div>
+    </section>
+
+    <main class="flex-1 relative flex flex-col items-center justify-start p-2 md:p-6 map-sea-bg min-h-[90vh]">
+        
+        <!-- Welcome Banner & Controls -->
+        <div class="w-full max-w-6xl mb-4 bg-sand-100/95 border-4 border-terracotta-600 rounded-2xl p-4 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-14 h-14 bg-terracotta-600 rounded-xl border-2 border-amber-400 flex items-center justify-center text-white text-3xl shadow ship-bobbing">
+                    <i class="fa-solid fa-ship"></i>
+                </div>
+                <div>
+                    <h2 class="font-title text-lg md:text-2xl font-bold text-terracotta-800 flex items-center gap-2">
+                        Peta Jelajah Bajak Laut Cerita Nusantara
+                    </h2>
+                    <p class="text-xs md:text-sm text-amber-950 font-medium">
+                        Ahoy, Kapten <span id="player-name-display" class="font-bold text-terracotta-600 underline">Petualang Cilik</span>! Ikuti jejak jalur titik-titik berliku di peta laut ini dari Pulau 1 hingga Pulau 30. Baca ceritanya & taklukkan Soal HOTS!
+                    </p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 w-full md:w-auto justify-end">
+                <button onclick="openNameModal()" class="bg-amber-600 hover:bg-amber-700 text-white font-cartoon text-xs px-3 py-2 rounded-lg border border-amber-800 transition">
+                    <i class="fa-solid fa-pen-to-square mr-1"></i> Ubah Nama
+                </button>
+                <button onclick="resetProgressConfirm()" class="bg-red-800/80 hover:bg-red-800 text-white font-cartoon text-xs px-3 py-2 rounded-lg border border-red-950 transition">
+                    <i class="fa-solid fa-rotate-right mr-1"></i> Reset
+                </button>
+            </div>
+        </div>
+
+        <!-- PIRATE TREASURE MAP VIEWPORT -->
+        <div class="w-full max-w-6xl bg-sand-200/90 rounded-3xl border-4 border-terracotta-800 shadow-2xl relative overflow-hidden parchment-bg p-4 md:p-8 min-h-[750px]">
+            
+            <!-- Map Legend -->
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-6 bg-terracotta-900/90 text-amber-100 p-3 rounded-xl border-2 border-amber-500 text-xs font-semibold z-20 relative shadow-lg">
+                <div class="flex items-center gap-4 flex-wrap">
+                    <span class="flex items-center gap-1.5"><span class="w-4 h-4 rounded-full bg-emerald-500 inline-block border border-amber-200"></span> Pulau Selesai</span>
+                    <span class="flex items-center gap-1.5"><span class="w-4 h-4 rounded-full bg-amber-500 inline-block border border-white animate-ping"></span> Pulau Aktif</span>
+                    <span class="flex items-center gap-1.5"><span class="w-4 h-4 rounded-full bg-slate-500 inline-block border border-amber-200"></span> Terkunci (Gembok)</span>
+                </div>
+                <div class="text-amber-300 font-cartoon text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-compass text-amber-400 text-lg"></i> 30 Pulau Cerita Nusantara
+                </div>
+            </div>
+
+            <!-- Scrollable Interactive Map Area -->
+            <div id="map-scroll-area" class="relative w-full overflow-x-auto custom-scrollbar pb-6">
+                <div id="treasure-map-board" class="relative min-w-[950px] h-[1350px] mx-auto my-2">
+                    
+                    <!-- Decorative Pirate Sea, Islands & Ship Background Elements -->
+                    <div class="absolute inset-0 pointer-events-none overflow-hidden select-none z-0">
+                        <!-- Ocean Waves Textures -->
+                        <div class="absolute inset-0 opacity-15" style="background-image: url('data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'40\' viewBox=\'0 0 100 40\'><path d=\'M0 20 Q 25 5, 50 20 T 100 20\' fill=\'none\' stroke=\'%23a64426\' stroke-width=\'1.5\'/></svg>');"></div>
+
+                        <!-- Island 1 Silhouette (Kepulauan Harta) -->
+                        <div class="absolute top-12 left-10 opacity-30 flex flex-col items-center">
+                            <i class="fa-solid fa-mountain-sun text-9xl text-amber-900/60"></i>
+                            <span class="font-cartoon text-xs text-amber-900 font-bold tracking-widest mt-1"><i class="fa-solid fa-tree mr-1"></i> Kepulauan Harta</span>
+                        </div>
+
+                        <!-- Island 2 Silhouette (Pulau Gunung Api) -->
+                        <div class="absolute top-[420px] right-8 opacity-30 flex flex-col items-center">
+                            <i class="fa-solid fa-volcano text-[130px] text-terracotta-900/50"></i>
+                            <span class="font-cartoon text-xs text-terracotta-900 font-bold tracking-widest"><i class="fa-solid fa-fire-flame-curved mr-1"></i> Pulau Gunung Api</span>
+                        </div>
+
+                        <!-- Island 3 Silhouette (Teluk Bajak Laut) -->
+                        <div class="absolute bottom-[320px] left-8 opacity-25 flex flex-col items-center">
+                            <i class="fa-solid fa-island-tropical text-[140px] text-amber-950/60"></i>
+                            <span class="font-cartoon text-xs text-amber-950 font-bold tracking-widest"><i class="fa-solid fa-sun mr-1"></i> Teluk Bajak Laut</span>
+                        </div>
+
+                        <!-- Pirate Ships Floating on Map -->
+                        <div class="absolute top-28 right-24 opacity-80 ship-bobbing text-terracotta-800 flex flex-col items-center z-0">
+                            <div class="relative">
+                                <i class="fa-solid fa-ship text-7xl text-terracotta-800 drop-shadow-md"></i>
+                                <i class="fa-solid fa-flag-usa absolute -top-3 left-6 text-amber-600 text-lg"></i>
+                            </div>
+                            <span class="text-[10px] font-bold font-cartoon bg-amber-100/90 text-amber-950 px-2 py-0.5 rounded border border-amber-500 shadow mt-1">Kapal Blackbeard</span>
+                        </div>
+
+                        <div class="absolute top-[680px] left-20 opacity-80 ship-bobbing text-amber-900 flex flex-col items-center z-0" style="animation-delay: -1.5s;">
+                            <div class="relative">
+                                <i class="fa-solid fa-sailboat text-6xl text-amber-800 drop-shadow-md"></i>
+                            </div>
+                            <span class="text-[10px] font-bold font-cartoon bg-amber-100/90 text-amber-950 px-2 py-0.5 rounded border border-amber-500 shadow mt-1">Perahu Pinisi Nusantara</span>
+                        </div>
+
+                        <div class="absolute bottom-16 right-1/4 opacity-80 ship-bobbing text-terracotta-900 flex flex-col items-center z-0" style="animation-delay: -2.8s;">
+                            <i class="fa-solid fa-ship text-8xl text-terracotta-900 drop-shadow-lg"></i>
+                            <span class="text-[10px] font-bold font-cartoon bg-amber-100/90 text-amber-950 px-2 py-0.5 rounded border border-amber-500 shadow mt-1">Kapal Induk Galleon</span>
+                        </div>
+
+                        <!-- Sea Monster / Kraken -->
+                        <div class="absolute bottom-[480px] right-12 opacity-35 text-terracotta-900 flex flex-col items-center animate-pulse">
+                            <i class="fa-solid fa-dragon text-9xl text-terracotta-950"></i>
+                            <span class="text-[10px] font-bold font-cartoon text-terracotta-950">Naga Laut Dalam</span>
+                        </div>
+
+                        <!-- Compass Rose -->
+                        <div class="absolute top-6 left-1/2 -translate-x-1/2 opacity-35 flex flex-col items-center">
+                            <i class="fa-solid fa-compass text-9xl text-terracotta-900 drop-shadow-sm"></i>
+                            <span class="font-title font-bold text-xs text-terracotta-900 tracking-widest mt-1">UTARA</span>
+                        </div>
+
+                        <!-- Anchor & Treasure Chest Decor -->
+                        <div class="absolute bottom-8 left-12 opacity-35 text-terracotta-900">
+                            <i class="fa-solid fa-anchor text-8xl"></i>
+                        </div>
+                        <div class="absolute bottom-10 right-10 opacity-40 text-amber-800 flex flex-col items-center">
+                            <i class="fa-solid fa-box-archive text-7xl text-amber-700"></i>
+                            <span class="text-[10px] font-cartoon font-bold text-amber-950">Peti Emas Karun</span>
+                        </div>
+                    </div>
+
+                    <!-- SVG Trail Path Connecting Islands 1 through 30 -->
+                    <svg id="svg-map-path" class="absolute inset-0 w-full h-full pointer-events-none z-0">
+                        <path id="trail-path-line" class="treasure-path" fill="none" d="" />
+                    </svg>
+
+                    <!-- Island Nodes Plotted Dynamic Container -->
+                    <div id="island-nodes-container" class="relative w-full h-full z-10">
+                        <!-- Plotted by JS -->
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- MODAL 1: Story Reading Viewer Modal -->
+    <div id="story-modal" class="fixed inset-0 bg-black/85 z-50 hidden flex items-center justify-center p-2 md:p-4 backdrop-blur-md overflow-y-auto">
+        <div class="bg-sand-100 rounded-2xl border-4 border-terracotta-700 w-full max-w-3xl max-h-[92vh] flex flex-col shadow-2xl relative overflow-hidden">
+            
+            <!-- Modal Header -->
+            <div class="bg-terracotta-700 text-white px-4 py-3 border-b-4 border-amber-500 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <span id="story-island-badge" class="bg-amber-400 text-terracotta-950 font-cartoon font-bold px-3 py-1 rounded-full text-xs shadow">
+                        Pulau 1
+                    </span>
+                    <h3 id="story-title" class="font-title text-base md:text-xl font-bold tracking-wide text-amber-200">
+                        Judul Cerita
+                    </h3>
+                </div>
+                <button onclick="closeStoryModal()" class="text-amber-200 hover:text-white text-2xl font-bold px-2">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Modal Content (Scrollable Parchment) -->
+            <div class="p-4 md:p-6 custom-scrollbar overflow-y-auto flex-1 parchment-bg">
+                
+                <!-- Metadata Badges -->
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-4 pb-3 border-b border-amber-300/80 text-xs font-semibold">
+                    <div class="flex items-center gap-2">
+                        <span class="bg-terracotta-100 text-terracotta-900 px-3 py-1 rounded-md border border-terracotta-400">
+                            <i class="fa-solid fa-map-pin mr-1 text-terracotta-600"></i> <span id="story-origin">Asal Daerah</span>
+                        </span>
+                        <span class="bg-amber-100 text-amber-950 px-3 py-1 rounded-md border border-amber-400">
+                            <i class="fa-solid fa-masks-theater mr-1 text-amber-700"></i> Jenis: <span id="story-category">Legenda</span>
+                        </span>
+                    </div>
+                    <div class="text-amber-950 italic font-cartoon text-xs">
+                        <i class="fa-solid fa-book-reader mr-1"></i> Bacalah dengan cermat!
+                    </div>
+                </div>
+
+                <!-- Story Body Text -->
+                <div id="story-body" class="font-story text-base md:text-lg text-amber-950 leading-relaxed space-y-4 text-justify">
+                    <!-- Story content dynamically rendered -->
+                </div>
+
+                <!-- Moral Value Box -->
+                <div class="mt-6 bg-terracotta-50/90 border-2 border-terracotta-400 p-4 rounded-xl text-terracotta-900 shadow-sm">
+                    <h4 class="font-title font-bold text-sm text-terracotta-800 flex items-center gap-2 mb-1">
+                        <i class="fa-solid fa-lightbulb text-amber-500 text-lg"></i> Pesan Moral / Nilai Kehidupan:
+                    </h4>
+                    <p id="story-moral" class="text-xs md:text-sm italic text-terracotta-950">
+                        Pesan moral akan tampil di sini.
+                    </p>
+                </div>
+
+            </div>
+
+            <!-- Modal Footer Actions -->
+            <div class="bg-amber-950 text-amber-100 px-4 py-3 border-t-2 border-amber-700 flex flex-wrap items-center justify-between gap-2">
+                <button onclick="closeStoryModal()" class="bg-amber-800 hover:bg-amber-700 px-4 py-2 rounded-lg text-xs md:text-sm font-cartoon">
+                    <i class="fa-solid fa-arrow-left mr-1"></i> Kembali ke Peta
+                </button>
+                <button id="btn-proceed-hots" onclick="startHotsQuiz()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2 rounded-lg text-xs md:text-sm font-cartoon font-bold shadow-lg border border-emerald-300 flex items-center gap-2 animate-pulse">
+                    <i class="fa-solid fa-scroll"></i>
+                    <span>Tantangan Soal HOTS (+100 Emas)</span>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MODAL 2: HOTS Quiz Modal -->
+    <div id="quiz-modal" class="fixed inset-0 bg-black/85 z-50 hidden flex items-center justify-center p-2 md:p-4 backdrop-blur-md overflow-y-auto">
+        <div class="bg-sand-100 rounded-2xl border-4 border-terracotta-700 w-full max-w-2xl flex flex-col shadow-2xl relative overflow-hidden">
+            
+            <!-- Quiz Header -->
+            <div class="bg-terracotta-700 text-white px-4 py-3 border-b-4 border-amber-500 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-brain text-amber-300 text-xl"></i>
+                    <h3 class="font-title text-base md:text-lg font-bold text-amber-200">
+                        Ujian Penalaran HOTS - <span id="quiz-island-title">Pulau 1</span>
+                    </h3>
+                </div>
+                <button onclick="closeQuizModal()" class="text-amber-200 hover:text-white text-2xl font-bold">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Quiz Body -->
+            <div class="p-4 md:p-6 font-body custom-scrollbar overflow-y-auto max-h-[75vh]">
+                
+                <div class="bg-amber-100 border-l-4 border-amber-600 p-3 rounded-r-lg mb-4 text-xs md:text-sm text-amber-950 font-medium">
+                    <i class="fa-solid fa-circle-info text-amber-700 mr-1"></i>
+                    Pilihlah jawaban paling logis dan kritis berdasarkan analisis cerita yang telah kamu baca!
+                </div>
+
+                <!-- Question Text -->
+                <div class="mb-5 bg-white p-4 rounded-xl border-2 border-amber-400 shadow-sm">
+                    <p id="quiz-question" class="font-semibold text-base md:text-lg text-terracotta-900 leading-snug">
+                        Soal pertanyaan HOTS akan dimuat di sini...
+                    </p>
+                </div>
+
+                <!-- Multiple Choice Options -->
+                <div id="quiz-options" class="space-y-3">
+                    <!-- Options buttons JS -->
+                </div>
+
+                <!-- Feedback Box -->
+                <div id="quiz-feedback" class="mt-4 p-4 rounded-xl border-2 hidden">
+                    <!-- Feedback details -->
+                </div>
+
+            </div>
+
+            <!-- Quiz Footer -->
+            <div class="bg-amber-950 px-4 py-3 border-t border-amber-800 flex justify-between items-center">
+                <div class="text-xs text-amber-200 font-cartoon">
+                    Hadiah: <span class="text-amber-400 font-bold">+100 Emas</span> & <span class="text-yellow-300 font-bold">+50 Poin</span>
+                </div>
+                <button id="btn-next-level" onclick="completeLevelAndUnlockNext()" class="hidden bg-emerald-600 hover:bg-emerald-500 text-white font-cartoon text-xs md:text-sm px-5 py-2 rounded-lg border border-emerald-300 shadow-lg flex items-center gap-2">
+                    <span>Buka Pulau Berikutnya</span>
+                    <i class="fa-solid fa-lock-open"></i>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MODAL 3: Materi Pengertian Cerita Rakyat Modal -->
+    <div id="materi-modal" class="fixed inset-0 bg-black/85 z-50 hidden flex items-center justify-center p-2 md:p-4 backdrop-blur-md overflow-y-auto">
+        <div class="bg-sand-100 rounded-2xl border-4 border-terracotta-700 w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl relative overflow-hidden">
+            
+            <div class="bg-terracotta-700 text-white px-5 py-3 border-b-4 border-amber-500 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-book-bookmark text-amber-300 text-xl"></i>
+                    <h3 class="font-title text-base md:text-xl font-bold text-amber-200">
+                        Materi Edukasi: Cerita Rakyat & Jenis-Jenisnya
+                    </h3>
+                </div>
+                <button onclick="closeMateriModal()" class="text-amber-200 hover:text-white text-2xl font-bold">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="p-5 custom-scrollbar overflow-y-auto space-y-6 text-amber-950 font-body">
+                
+                <!-- Definition Section -->
+                <div class="bg-white p-5 rounded-xl border-2 border-terracotta-400 shadow-md">
+                    <h4 class="font-title font-bold text-lg text-terracotta-800 border-b-2 border-terracotta-200 pb-2 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-scroll text-terracotta-600"></i> Pengertian Cerita Rakyat
+                    </h4>
+                    <p class="text-sm md:text-base leading-relaxed text-slate-800">
+                        <strong>Cerita Rakyat</strong> adalah kisah atau rekaan prosa yang tumbuh dan berkembang di tengah masyarakat secara turun-temurun dari generasi ke generasi melalui tutur lisan. Cerita rakyat mencerminkan kebudayaan, kebiasaan, sistem nilai norma, kepercayaan, serta tradisi unik berbagai suku bangsa di Nusantara.
+                    </p>
+                </div>
+
+                <!-- Types of Folklore Grid -->
+                <div>
+                    <h4 class="font-title font-bold text-lg text-terracotta-800 mb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-layer-group text-terracotta-600"></i> 7 Jenis Cerita Rakyat Nusantara
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        
+                        <!-- 1. Fabel -->
+                        <div class="bg-amber-50 p-4 rounded-xl border border-amber-300 shadow-sm">
+                            <span class="bg-amber-600 text-white font-cartoon text-xs px-2.5 py-0.5 rounded-full inline-block mb-1">1. Fabel</span>
+                            <h5 class="font-bold text-amber-950 text-sm mb-1">Cerita Hewan Berperilaku Manusia</h5>
+                            <p class="text-xs text-slate-700 leading-normal">
+                                Kisah yang tokoh utamanya berupa binatang yang dapat berbicara, berpikir, dan berbuat layaknya manusia untuk menyampaikan nasehat moral. (Contoh: <em>Kancil dan Buaya</em>).
+                            </p>
+                        </div>
+
+                        <!-- 2. Legenda -->
+                        <div class="bg-amber-50 p-4 rounded-xl border border-amber-300 shadow-sm">
+                            <span class="bg-terracotta-600 text-white font-cartoon text-xs px-2.5 py-0.5 rounded-full inline-block mb-1">2. Legenda</span>
+                            <h5 class="font-bold text-terracotta-950 text-sm mb-1">Asal-Usul Mula Tempat & Alam</h5>
+                            <p class="text-xs text-slate-700 leading-normal">
+                                Cerita rakyat yang dikaitkan dengan sejarah asal-usul terbentuknya suatu tempat, gunung, danau, pulau, atau benda alam tertentu. (Contoh: <em>Danau Toba, Sangkuriang</em>).
+                            </p>
+                        </div>
+
+                        <!-- 3. Mite / Mitos -->
+                        <div class="bg-amber-50 p-4 rounded-xl border border-amber-300 shadow-sm">
+                            <span class="bg-purple-600 text-white font-cartoon text-xs px-2.5 py-0.5 rounded-full inline-block mb-1">3. Mite (Mitos)</span>
+                            <h5 class="font-bold text-purple-950 text-sm mb-1">Kepercayaan Gaib & Dewa-Dewi</h5>
+                            <p class="text-xs text-slate-700 leading-normal">
+                                Cerita yang dianggap suci, berbau ghaib dan sakral, serta melibat kekuatan dewa, makhluk halus, atau fenomena supranatural. (Contoh: <em>Nyi Roro Kidul, Calon Arang</em>).
+                            </p>
+                        </div>
+
+                        <!-- 4. Hikayat -->
+                        <div class="bg-amber-50 p-4 rounded-xl border border-amber-300 shadow-sm">
+                            <span class="bg-blue-600 text-white font-cartoon text-xs px-2.5 py-0.5 rounded-full inline-block mb-1">4. Hikayat</span>
+                            <h5 class="font-bold text-blue-950 text-sm mb-1">Prosa Melayu Istana Sentris</h5>
+                            <p class="text-xs text-slate-700 leading-normal">
+                                Kesusastraan Melayu klasik berbentuk kisah rekaan kepahlawanan, keajaiban raja-raja, serta kehidupan di seputar istana. (Contoh: <em>Hikayat Hang Tuah, Indera Bangsawan</em>).
+                            </p>
+                        </div>
+
+                        <!-- 5. Epos -->
+                        <div class="bg-amber-50 p-4 rounded-xl border border-amber-300 shadow-sm">
+                            <span class="bg-red-600 text-white font-cartoon text-xs px-2.5 py-0.5 rounded-full inline-block mb-1">5. Epos (Wiracarita)</span>
+                            <h5 class="font-bold text-red-950 text-sm mb-1">Kisah Kepahlawanan Agung</h5>
+                            <p class="text-xs text-slate-700 leading-normal">
+                                Cerita kepahlawanan berskala besar yang mengagungkan kepahlawanan akbar dan takdir perjuangan bangsa. (Contoh: <em>La Galigo, Hanoman Duta</em>).
+                            </p>
+                        </div>
+
+                        <!-- 6. Sage -->
+                        <div class="bg-amber-50 p-4 rounded-xl border border-amber-300 shadow-sm">
+                            <span class="bg-emerald-600 text-white font-cartoon text-xs px-2.5 py-0.5 rounded-full inline-block mb-1">6. Sage</span>
+                            <h5 class="font-bold text-emerald-950 text-sm mb-1">Kisah Sejarah Bercampur Khayalan</h5>
+                            <p class="text-xs text-slate-700 leading-normal">
+                                Cerita rakyat berdasarkan fakta peristiwa sejarah masa lalu yang telah bercampur dengan imajinasi rakyat. (Contoh: <em>Si Pitung</em>).
+                            </p>
+                        </div>
+
+                        <!-- 7. Dongeng Jenaka -->
+                        <div class="bg-amber-50 p-4 rounded-xl border border-amber-300 shadow-sm sm:col-span-2">
+                            <span class="bg-teal-600 text-white font-cartoon text-xs px-2.5 py-0.5 rounded-full inline-block mb-1">7. Dongeng & Lucu</span>
+                            <h5 class="font-bold text-teal-950 text-sm mb-1">Kisah Khayalan & Humor</h5>
+                            <p class="text-xs text-slate-700 leading-normal">
+                                Cerita murni khayalan hiburan yang berisi kelucuan atau kecerdikan tokoh utama dalam menyelesaikan masalah sehari-hari. (Contoh: <em>Timun Mas, Si Kabayan</em>).
+                            </p>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="bg-amber-950 text-amber-100 px-4 py-3 border-t border-amber-700 flex justify-end">
+                <button onclick="closeMateriModal()" class="bg-terracotta-600 hover:bg-terracotta-500 text-white font-cartoon text-xs md:text-sm px-5 py-2 rounded-lg border border-amber-300">
+                    Paham! Kembali ke Peta Harta Karun <i class="fa-solid fa-compass ml-1"></i>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MODAL 4: Developer Profile Modal -->
+    <div id="profile-modal" class="fixed inset-0 bg-black/85 z-50 hidden flex items-center justify-center p-3 backdrop-blur-md">
+        <div class="bg-sand-100 rounded-2xl border-4 border-terracotta-700 w-full max-w-md p-6 shadow-2xl relative text-center">
+            
+            <button onclick="closeProfileModal()" class="absolute top-3 right-3 text-slate-500 hover:text-black text-2xl">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <div class="w-24 h-24 mx-auto mb-4 rounded-full bg-terracotta-600 border-4 border-amber-400 flex items-center justify-center text-amber-200 text-4xl shadow-lg ship-bobbing">
+                <i class="fa-solid fa-user-ninja"></i>
+            </div>
+
+            <h3 class="font-title text-xl font-bold text-terracotta-800">
+                Guyub Tri Salaswati, S.Pd.Gr.
+            </h3>
+            <p class="text-xs font-semibold text-amber-800 uppercase tracking-widest mt-1">
+                Pengembang Media Pembelajaran Interaktif
+            </p>
+
+            <div class="my-4 p-4 bg-amber-50 rounded-xl border border-amber-300 text-xs text-slate-800 space-y-2 text-left font-medium">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-school text-terracotta-600"></i>
+                    <span><strong>Instansi:</strong> SD Negeri 2 Penantian</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-map-location-dot text-terracotta-600"></i>
+                    <span><strong>Media:</strong> Jejak Petualang Cerita Nusantara</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-bullseye text-terracotta-600"></i>
+                    <span><strong>Fokus:</strong> Penguatan Literasi Cerita Rakyat & Soal HOTS SD</span>
+                </div>
+            </div>
+
+            <p class="text-xs italic text-amber-900">
+                "Menggugah minat baca anak bangsa melalui petualangan cerita rakyat Nusantara yang seru dan bernilai moral."
+            </p>
+
+            <button onclick="closeProfileModal()" class="mt-5 w-full bg-terracotta-600 hover:bg-terracotta-500 text-white font-cartoon py-2 rounded-lg border border-amber-300">
+                Tutup
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL 5: Player Name Modal -->
+    <div id="name-modal" class="fixed inset-0 bg-black/85 z-50 hidden flex items-center justify-center p-3 backdrop-blur-md">
+        <div class="bg-sand-100 rounded-2xl border-4 border-terracotta-700 w-full max-w-sm p-6 shadow-2xl text-center">
+            <h3 class="font-title text-xl font-bold text-terracotta-800 mb-2">
+                <i class="fa-solid fa-hat-cowboy-side text-amber-600 mr-2"></i> Nama Kapten Cilik
+            </h3>
+            <p class="text-xs text-amber-950 mb-4 font-medium">
+                Masukkan namamu untuk memulai penjelajahan peta harta karun cerita!
+            </p>
+            <input type="text" id="input-player-name" placeholder="Ketik Namamu..." class="w-full px-4 py-2.5 rounded-xl border-2 border-terracotta-400 font-semibold text-center text-sm mb-4 focus:outline-none focus:border-terracotta-600">
+            
+            <button onclick="savePlayerName()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-cartoon py-2.5 rounded-xl border border-emerald-300 shadow">
+                Simpan & Berlayar!
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Web Audio API Synthesizer for SFX
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+            }
+
+            initCtx() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            playCoin() {
+                if (this.muted) return;
+                this.initCtx();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(987.77, now); // B5
+                osc.frequency.setValueAtTime(1318.51, now + 0.08); // E6
+
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start(now);
+                osc.stop(now + 0.3);
+            }
+
+            playSuccess() {
+                if (this.muted) return;
+                this.initCtx();
+                const now = this.ctx.currentTime;
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.2, now + idx * 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.1 + 0.25);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now + idx * 0.1);
+                    osc.stop(now + idx * 0.1 + 0.25);
+                });
+            }
+
+            playWrong() {
+                if (this.muted) return;
+                this.initCtx();
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.setValueAtTime(170, now + 0.15);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + 0.35);
+            }
+        }
+
+        const soundFX = new SoundEngine();
+
+        function toggleAudio() {
+            soundFX.muted = !soundFX.muted;
+            const icon = document.getElementById('sound-icon');
+            if (soundFX.muted) {
+                icon.className = 'fa-solid fa-volume-xmark text-red-300';
+            } else {
+                icon.className = 'fa-solid fa-volume-high text-amber-200';
+                soundFX.playCoin();
+            }
+        }
+
+        const storiesData = [
+            {
+                id: 1,
+                title: "Malin Kundang",
+                origin: "Sumatera Barat",
+                category: "Legenda",
+                body: `Dahulu kala di sebuah desa pesisir pantai di Sumatera Barat, hiduplah seorang janda miskin bernama Mande Rubayah bersama putra tunggalnya yang amat disayanginya, Malin Kundang. Mande amat menyayangi Malin dan membesarkannya dengan penuh kasih sayang meskipun kehidupan mereka sangat serba kekurangan. Ketika Malin mulai tumbuh dewasa, ia merasa prihatin melihat ibunya yang terus bekerja keras tanpa henti. Malin lalu meminta izin kepada ibunya untuk merantau mengarungi lautan bersama kapal pedagang kaya dengan tekad mengubah nasib ekonomi keluarganya.
+                <br><br>
+                Dengan berat hati dan doa yang tiada putusnya, Mande Rubayah melepas kepergian anak kesayangannya itu. Bertahun-tahun berlalu tanpa ada kabar berita dari Malin. Mande selalu setia berdiri di dermaga setiap hari berharap kapalnya kembali. Berkat kerja keras dan ketangkasannya, Malin berhasil menjadi seorang saudagar kaya raya yang memiliki puluhan kapal mewah serta ribuan anak buah. Malin juga menikahi seorang putri bangsawan yang amat cantik jelita.
+                <br><br>
+                Suatu hari, kapal megah Malin berlabuh di pantai kampung halamannya. Mande Rubayah yang sudah tua dan renta mendengar berita kegirangan tersebut. Dengan linangan air mata sukacita, ia berlari ke dermaga sambil membawa kue kesukaan Malin sewaktu kecil. Namun, saat Mande memeluk kaki Malin di hadapan istrinya yang anggun, Malin merasa sangat malu memiliki ibu yang berpakaian compang-camping dan kotor. Malin menendang Mande hingga tersungkur di pasir dan membentak, "Wanita pengemis kotor! Aku tidak pernah memiliki ibu sepertimu!"
+                <br><br>
+                Mande Rubayah sangat terkejut dan hatinya hancur berkeping-keping. Sambil menangis pedih di tepi pantai, ia mengangkat tangannya dan berdoa, "Ya Tuhan, jika ia benar anakku Malin Kundang, aku kutuk dia menjadi batu atas durhakanya!" Seketika itu juga langit membiru g gelap, petir menyambar-nyambar, dan badai dahsyat mengamuk menghancurkan kapal mewah Malin. Tubuh Malin perlahan membeku dan berubah menjadi batu karang yang tersungkur di Pantai Air Manis.`,
+                moral: "Hormati dan sayangilah orang tua dalam kondisi apa pun, karena keridaan orang tua adalah kunci keselamatan hidup.",
+                hotsQuestion: "Mengapa tindakan Malin Kundang yang tidak mengakui ibunya di depan istrinya menunjukkan keruntuhan moralitas diri meskipun ia telah mencapai kesuksesan finansial?",
+                options: [
+                    { text: "Karena kesuksesan finansial tidak ada artinya jika seseorang kehilangan nilai moral, rasa hormat, dan kemanusiaan terhadap ibu kandungnya.", correct: true, explanation: "Sangat tepat! Keberhasilan sejati bukan diukur dari kekayaan materi semata, melainkan dari integritas moral dan kehormatan pada orang tua." },
+                    { text: "Karena Malin merusak kapal mewahnya sendiri saat dihantam badai laut.", correct: false, explanation: "Kerusakan kapal adalah akibat fisik, bukan akar penilaian kehancuran moral Malin." },
+                    { text: "Karena Malin tidak membagikan kue membawaan ibunya kepada anak buah kapalnya.", correct: false, explanation: "Ini bukan pemicu utama keruntuhan moral Malin Kundang." },
+                    { text: "Karena istri Malin tidak menyukai suasana Pantai Air Manis di Sumatera Barat.", correct: false, explanation: "Perasaan istri Malin bukan dasar pertimbangan moralitas Malin." }
+                ]
+            },
+            {
+                id: 2,
+                title: "Danau Toba",
+                origin: "Sumatera Utara",
+                category: "Legenda",
+                body: `Di wilayah Sumatera Utara, hiduplah seorang pemuda yatim piatu bernama Toba yang bekerja rajin berladang dan memancing ikan untuk memenuhi kebutuhan hidupnya sehari-hari. Suatu hari saat memancing di sungai, Toba berhasil menangkap seekor ikan mas berukuran sangat besar dengan sisik yang berkilauan bagaikan emas murni. Saat Toba hendak memasaknya, ikan tersebut berucap ajaib memohon ampun dan berubah menjadi seorang wanita yang sangat cantik jelita.
+                <br><br>
+                Wanita jelita itu bersedia menikah dengan Toba dengan satu syarat mutlak: Toba harus bersumpah untuk tidak pernah membeberkan rahasia asal-usul dirinya yang merupakan jelmaan dari seekor ikan kepada siapa pun. Toba menyetujui janji sakral tersebut. Pernikahan mereka membuahkan seorang anak laki-laki bernama Samosir yang tumbuh menjadi anak yang sangat aktif dan memiliki nafsu makan luar biasa.
+                <br><br>
+                Suatu hari, Samosir diminta oleh ibunya untuk mengantarkan bekal makan siang kepada ayahnya yang sedang bekerja keras di ladang. Di tengah perjalanan, Samosir merasa sangat lapar dan memakan sebagian besar makanan di dalam bekal tersebut. Ketika Toba membuka bekal yang tersisa sedikit, rasa lelah dan amarah Toba meledak tak terkendali. Tanpa sadar, Toba berteriak memarahi anaknya, "Dasar anak kurang ajar! Dasar anak ikan!"
+                <br><br>
+                Samosir menangis tersedu-sedu dan berlari pulang mengadu kepada ibunya. Sang ibu sangat sedih karena Toba telah melanggar janji suci yang mereka sepakati. Seketika itu juga, gumpalan awan hitam menutup langit, kilat menyambar, dan air menyembur deras dari dasar bumi menenggelamkan seluruh desa. Genangan air raksasa itu kini menjadi Danau Toba, dan pulau di tengahnya dinamai Pulau Samosir.`,
+                moral: "Pegang teguh janji yang telah diucapkan, karena sekali janji dilanggar, dampaknya dapat merusak keharmonisan.",
+                hotsQuestion: "Analisis dampak amarah tak terkontrol yang dialami Toba. Mengapa melanggar sumpah demi emosi sesaat dapat menghancurkan masa depan keluarga?",
+                options: [
+                    { text: "Samosir layak dimarahi secara keras karena menghabiskan bekal makan siang ayahnya.", correct: false, explanation: "Memarahi anak atas kesalahannya wajar, namun melanggar janji sakral adalah bentuk hilangnya kendali emosi." },
+                    { text: "Amarah yang tak terkendali menghilangkan kesadaran akan batas komitmen, sehingga menghancurkan masa depan yang dibangun bertahun-tahun.", correct: true, explanation: "Luar biasa! Emosi yang tak terkontrol dapat melenyapkan akal sehat dan merusak janji paling krusial." },
+                    { text: "Toba seharusnya membiarkan Samosir bermain tanpa memberinya tugas membawa bekal.", correct: false, explanation: "Memberi tugas adalah bagian dari mendidik anak, bukan penyebab pelanggaran sumpah." },
+                    { text: "Ibu Samosir terlalu cepat marah tanpa mau mendengar alasan Toba terlebih dahulu.", correct: false, explanation: "Sumpah sakral telah disepakati dari awal sebagai batas yang tak boleh dilanggar." }
+                ]
+            },
+            {
+                id: 3,
+                title: "Hikayat Hang Tuah",
+                origin: "Kepulauan Riau",
+                category: "Hikayat",
+                body: `Pada zaman kejayaan Kesultanan Melaka, hiduplah seorang laksamana perkasa bernama Hang Tuah beserta empat sahabat karibnya: Hang Jebat, Hang Kasturi, Hang Lekir, dan Hang Lekiu. Kuintet pemuda ini sangat terkenal akan keberanian, kesetiaan, dan kemahiran bertarung dalam membela benteng kerajaan. Ketenaran Hang Tuah memicu rasa iri dari para pejabat istana yang curang, sehingga mereka menyebarkan fitnah keji bahwa Hang Tuah berniat memberontak kepada Sultan.
+                <br><br>
+                Terpengaruh oleh hasutan fitnah tersebut, Sultan yang murka langsung memerintahkan hukum mati bagi Hang Tuah tanpa melakukan penyelidikan mendalam. Namun, Bendahara kerajaan yang bijaksana tahu bahwa Hang Tuah tidak bersalah. Secara sembunyi-sembunyi, Bendahara menyembunyikan Hang Tuah di sebuah desa terpencil dan melaporkan palsu bahwa pengeksekusian telah dilakukan.
+                <br><br>
+                Mendengar berita bahwa sahabat terbaiknya dihukum mati secara tidak adil, Hang Jebat merasa teramat sedih dan marah. Hang Jebat lalu mengamuk di dalam istana demi menuntut keadilan atas nasib Hang Tuah. Sultan terdesak dan sangat menyesali keputusannya. Saat itulah Bendahara memberitahukan bahwa Hang Tuah masih hidup. Demi kesetiaannya yang mutlak kepada Sultan, Hang Tuah rela kembali dan bertarung melawan sahabat karibnya sendiri, Hang Jebat, demi menjalankan perintah raja.`,
+                moral: "Seorang pemimpin harus bersikap bijaksana dalam memverifikasi informasi agar tidak mengorbankan orang jujur.",
+                hotsQuestion: "Dilema moral apakah yang dialami Hang Tuah saat ia diperintahkan Sultan untuk bertarung melawan sahabatnya, Hang Jebat?",
+                options: [
+                    { text: "Pertentangan batin antara ketaatan loyalitas tradisi kepada Sultan melawan ikatan persahabatan dan rasa keadilan bagi Hang Jebat.", correct: true, explanation: "Tepat sekali! Hang Tuah terjebak antara norma kesetiaan pada negara dan persahabatan sejati." },
+                    { text: "Kebingungan memilih apakah ia harus melarikan diri ke negeri tetangga.", correct: false, explanation: "Hang Tuah tidak berniat melarikan diri, melainkan menghadapi perintah Sultan." },
+                    { text: "Pilihan antara mempertahankan keris Taming Sari atau menyerahkannya kepada raja.", correct: false, explanation: "Keris hanyalah simbol senjata, bukan pemicu utama konflik batin." },
+                    { text: "Keinginan untuk membuktikan siapa prajurit terkuat di Kerajaan Melaka.", correct: false, explanation: "Pertarungan tersebut bukan ajang pamer kekuatan fisik semata." }
+                ]
+            },
+            {
+                id: 4,
+                title: "Si Pitung",
+                origin: "DKI Jakarta",
+                category: "Sage",
+                body: `Pada masa penjajahan Belanda di tanah Betawi, rakyat kecil hidup dalam penderitaan yang amat memprihatinkan akibat pemerasan pajak oleh pemerintah kolonial dan para tuan tanah jahat. Dari kalangan rakyat biasa, muncullah seorang pemuda saleh dan tangkas dalam ilmu silat bernama Si Pitung. Hatinya tersentuh melihat ketidakadilan yang menimpa warga disekitarnya.
+                <br><br>
+                Si Pitung bersama sahabat-sahabatnya mulai menyusup ke rumah-rumah pejabat kaya Belanda dan tuan tanah yang curang untuk mengambil kembali harta mereka. Namun, Pitung tidak mengambil sepeser pun hasil rampokan tersebut untuk dirinya sendiri. Seluruh perhiasan, uang, dan bahan pangan dibagikan secara adil kepada rakyat miskin, anak-anak yatim, dan janda yang membutuhkan.
+                <br><br>
+                Pemerintah Kolonial Belanda sangat murka dan menjuluki Si Pitung sebagai pengacau keamanan. Schout Heyne, perwira polisi Belanda, dikerahkan untuk menangkap Pitung hidup atau mati. Pitung yang cerdik dan menguasai berbagai ilmu beladiri selalu berhasil meloloskan diri dari jebakan musuh. Walaupun akhirnya Pitung gugur akibat tipu muslihat Belanda, namanya tetap membekas di hati rakyat Betawi sebagai pahlawan keadilan sosial.`,
+                moral: "Perjuangan membela keadilan dan rakyat lemah adalah sikap terpuji yang akan selalu dikenang.",
+                hotsQuestion: "Mengapa Si Pitung dipandang sebagai pahlawan oleh rakyat Betawi, namun dianggap penjahat oleh Pemerintah Kolonial Belanda?",
+                options: [
+                    { text: "Karena sudut pandang kepentingan yang berbeda: Belanda merasa terancam otoritas dan finansialnya, sementara rakyat merasa tertolong dari penindasan.", correct: true, explanation: "Sangat tepat! Latar belakang kepentingan menentukan penilaian status pahlawan versus pengacau." },
+                    { text: "Karena Si Pitung tidak pernah membagikan makanan kepada pasukan kolonial.", correct: false, explanation: "Ini bukan alasan utama perbedaan penilaian status hukum Si Pitung." },
+                    { text: "Karena Si Pitung selalu mengenakan pakaian adat khas Betawi berwarna merah.", correct: false, explanation: "Atribut pakaian tidak menentukan analisis status pahlawan." },
+                    { text: "Karena Si Pitung menolak mengajarkan ilmu silat di markas penjajah.", correct: false, explanation: "Penolakan ilmu silat hanyalah bagian kecil dari perjuangan fisik Pitung." }
+                ]
+            },
+            {
+                id: 5,
+                title: "Sangkuriang",
+                origin: "Jawa Barat",
+                category: "Legenda",
+                body: `Di tatar Sunda, Jawa Barat, hiduplah wanita cantik awet muda bernama Dayang Sumbi bersama putranya Sangkuriang dan seekor anjing istimewa bernama Tumang yang sebenarnya merupakan jelmaan dewa. Suatu hari saat berburu di hutan, Sangkuriang marah karena Tumang tidak mau menuruti perintahnya mengejar buruan. Dalam amarahnya, Sangkuriang membunuh Tumang. Ketika Dayang Sumbi mengetahui hal tersebut, ia sangat murka lalu memukul kepala Sangkuriang hingga terluka dan mengusirnya.
+                <br><br>
+                Bertahun-tahun berlalu, Sangkuriang tumbuh menjadi pemuda perkasa. Dalam pengembaraannya, ia bertemu dengan Dayang Sumbi yang tetap tampak muda berkat anugerah dewa. Sangkuriang jatuh cinta tanpa menyadari bahwa wanita tersebut adalah ibu kandungnya sendiri.
+                <br><br>
+                Saat hendak menikah, Dayang Sumbi terkejut melihat bekas luka di kepala Sangkuriang dan menyadari identitas sebenarnya dari pemuda itu. Untuk menggagalkan pernikahan terlarang tersebut, Dayang Sumbi memberikan syarat yang mustahil: Sangkuriang harus membendung sungai Citarum dan membuat perahu raksasa dalam waktu satu malam sebelum fajar menyingsing.
+                <br><br>
+                Dengan bantuan pasukan makhluk halus, Sangkuriang hampir menyelesaikan syarat itu. Dayang Sumbi lalu membentangkan kain sutra merah di ufuk timur dan menumbuk lesung agar ayam jantan berkokok tanda fajar telah tiba. Merasa tertipu, Sangkuriang marah besar dan menendang perahu buatannya hingga terbalik. Perahu terbalik itulah yang menjadi Gunung Tangkuban Parahu.`,
+                moral: "Kendalikan amarah dan emosi, serta jagalah nilai kesopanan dan takdir norma keluarga.",
+                hotsQuestion: "Strategi cerdik apa yang digunakan Dayang Sumbi untuk menggagalkan pembuatan perahu tanpa harus menggunakan perang fisik?",
+                options: [
+                    { text: "Memanfaatkan kondisi psikologis para jin dengan merekayasa datangnya fajar lebih awal melalui tiruan cahaya dan kokok ayam.", correct: true, explanation: "Benar! Dayang Sumbi memanfaatkan kelemahan makhluk halus yang takut pada cahaya fajar." },
+                    { text: "Memanggil bantuan tentara dari kerajaan tetangga untuk merusak perahu Sangkuriang.", correct: false, explanation: "Dayang Sumbi tidak melibatkan pasukan fisik luar." },
+                    { text: "Merusak badan perahu secara langsung menggunakan kapak kayu.", correct: false, explanation: "Perahu ditendang oleh Sangkuriang akibat meluapnya amarah." },
+                    { text: "Melarikan diri ke dasar sungai Citarum agar tidak ditemukan.", correct: false, explanation: "Dayang Sumbi tetap berada di lokasi untuk mengatur rekayasa datangnya fajar." }
+                ]
+            }
+        ];
+
+        const additionalStories = [
+            { id: 6, title: "Timun Mas", origin: "Jawa Tengah", category: "Dongeng", moral: "Keberanian, kecerdikan, dan doa mampu mengalahkan ancaman raksasa terbesar sekalipun.", q: "Bagaimana kantong ajaib dari pertapa menjadi simbol pemanfaatan sumber daya secara cerdik saat terdesak?" },
+            { id: 7, title: "Roro Jonggrang", origin: "DI Yogyakarta", category: "Legenda", moral: "Kejujuran adalah fondasi utama; pemaksaan kehendak akan berbuah kesedihan.", q: "Mengapa pemaksaan kehendak Bandung Bandawasa terhadap Roro Jonggrang berakhir tragis?" },
+            { id: 8, title: "Keong Mas", origin: "Jawa Timur", category: "Dongeng", moral: "Kebaikan hati dan kesabaran akan selalu menang atas rasa iri dan dengki.", q: "Nilai ketabahan apa yang ditunjukkan oleh Candra Kirana saat menjalani cobaan berubah menjadi keong mas?" },
+            { id: 9, title: "Kancil dan Buaya", origin: "Nusantara", category: "Fabel", moral: "Gunakan kecerdasan untuk kebaikan, bukan untuk merugikan makhluk lain secara sembrono.", q: "Mengapa kecerdikan Kancil harus dibarengi dengan tanggung jawab moral agar tidak merugikan pihak lain?" },
+            { id: 10, title: "Putri Hijau", origin: "Sumatera Utara", category: "Legenda", moral: "Pertahankan kehormatan dan persatuan tanah air dari ancaman luar.", q: "Pelajaran diplomasi apa yang dapat diambil dari pengorbanan saudara Putri Hijau?" },
+            { id: 11, title: "Asal Usul Selat Bali", origin: "Bali", category: "Legenda", moral: "Sayangi orang tua dan jauhi perilaku serakah serta perjudian.", q: "Mengapa Manik Angkeran dipisahkan oleh ayahnya dengan goresan tongkat sakti di tanah?" },
+            { id: 12, title: "Calon Arang", origin: "Bali / Jawa Timur", category: "Mite", moral: "Ilmu dan kekuatan hendaknya digunakan untuk mengayomi, bukan menebar dendam.", q: "Bagaimana Mpu Bharada menyelesaikan konflik tanpa mengorbankan ketenteraman rakyat?" },
+            { id: 13, title: "Batu Golog", origin: "Nusa Tenggara Barat", category: "Legenda", moral: "Jagalah anak-anak dengan penuh perhatian dan kasih sayang setiap saat.", q: "Apa konsekuensi kelalaian orang tua dalam menjaga keselamatan anak-anaknya?" },
+            { id: 14, title: "Suri Ikun dan Dua Burung", origin: "Nusa Tenggara Timur", category: "Dongeng", moral: "Kebaikan yang ditanam kepada sesama makhluk hidup pasti membuahkan bantuan.", q: "Mengapa kebaikan Suri Ikun kepada burung nuri membantunya lolos dari raksasa?" },
+            { id: 15, title: "Hikayat Indera Bangsawan", origin: "Melayu", category: "Hikayat", moral: "Keberanian yang disertai keikhlasan akan membawa kemuliaan dan kejayaan.", q: "Nilai ujian apakah yang sebenarnya dicari oleh sang Raja kepada kedua putranya?" },
+            { id: 16, title: "Danau Lipan", origin: "Kalimantan Timur", category: "Legenda", moral: "Jangan bersikap sombong dan memandang rendah kehormatan orang lain.", q: "Sikap sombong Raja Cina memicu bencana. Mengapa harga diri suatu bangsa harus dijaga?" },
+            { id: 17, title: "Putri Junjung Busa", origin: "Kalimantan Selatan", category: "Legenda", moral: "Kepemimpinan yang bijak lahir dari kesucian hati dan ketaatan pada aturan adat.", q: "Mengapa syarat-syarat khusus diajukan sebelum menerima kepemimpinan sebuah kerajaan?" },
+            { id: 18, title: "Sungai Landak", origin: "Kalimantan Barat", category: "Legenda", moral: "Keserakahan akan menghancurkan diri sendiri dan merugikan lingkungan sekitar.", q: "Mengapa patung landak emas memuntahkan air berlebih saat dikuasai orang serakah?" },
+            { id: 19, title: "Burung Cendrawasih", origin: "Papua", category: "Mite", moral: "Kasih sayang saudara harus dipelihara, jauhi rasa iri hati dalam keluarga.", q: "Bagaimana rasa iri saudara-saudara Kweya merusak keharmonisan keluarga mereka?" },
+            { id: 20, title: "La Galigo & Sawerigading", origin: "Sulawesi Selatan", category: "Epos", moral: "Hormati tradisi dan tatanan moral demi kedamaian masyarakat luas.", q: "Pelajaran kepemimpinan apa yang disampaikan dalam Epos La Galigo bagi penerus bangsa?" },
+            { id: 21, title: "Rumah Lona", origin: "Sulawesi Tenggara", category: "Legenda", moral: "Tolong-menolong antar sesama warga adalah kunci ketahanan masyarakat.", q: "Mengapa kebersamaan warga Lona penting dalam menghadapi cobaan dari luar?" },
+            { id: 22, title: "Danau Limboto", origin: "Gorontalo", category: "Legenda", moral: "Peliharalah kelestarian alam agar terhindar dari bencana.", q: "Bagaimana hubungan antara kearifan lokal dengan pelestarian lingkungan hidup?" },
+            { id: 23, title: "Gunung Lokon", origin: "Sulawesi Utara", category: "Legenda", moral: "Kekuatan besar harus disertai dengan kebijaksanaan dan kerendahan hati.", q: "Mengapa pertengkaran antar tokoh berkekuatan tinggi dapat merusak keseimbangan alam?" },
+            { id: 24, title: "Bunga Kemuning", origin: "Nusantara", category: "Dongeng", moral: "Anak yang berbudi pekerti luhur akan dikenang dengan keharuman nama baik.", q: "Perbedaan karakter Putri Kuning dan saudara-saudaranya memberikan pelajaran apa bagi kita?" },
+            { id: 25, title: "Hikayat Bayan Budiman", origin: "Melayu", category: "Hikayat", moral: "Gunakan keahlian berbicara untuk menasihati dan mencegah tindakan gegabah.", q: "Bagaimana burung Bayan mencegah kejahatan dengan menggunakan metode bercerita?" },
+            { id: 26, title: "Pulau Senua", origin: "Kepulauan Riau", category: "Legenda", moral: "Kikir dan pelit hanya akan mendatangkan kesendirian dan kerugian.", q: "Mengapa sifat kikir Mai Lamah mengubah nasibnya secara tragis di laut?" },
+            { id: 27, title: "Nenek Pakande", origin: "Sulawesi Selatan", category: "Mite", moral: "Anak-anak harus patuh kepada orang tua dan disiplin waktu.", q: "Pesan kedisiplinan apa yang disampaikan melalui tokoh Nenek Pakande kepada anak-anak?" },
+            { id: 28, title: "Kepulauan Banda", origin: "Maluku", category: "Legenda", moral: "Jaga persatuan dan persaudaraan tanah air dari adu domba.", q: "Mengapa persatuan warga Banda menjadi benteng pertahanan paling utama?" },
+            { id: 29, title: "Danau Sentani", origin: "Papua", category: "Legenda", moral: "Keberanian menembus rintangan alam akan membuahkan hasil wilayah yang subur.", q: "Bagaimana ketangguhan para leluhur Sentani memberikan keteladanan pantang menyerah?" },
+            { id: 30, title: "Hanoman Duta", origin: "Nusantara / Jawa", category: "Epos", moral: "Kesetiaan pada kebenaran dan tugas mulia akan mendapat pertolongan Tuhan.", q: "Mengapa integritas dan keteguhan Hanoman menjadi contoh kepahlawanan sejati?" }
+        ];
+
+        // Populate full text for additional 25 items
+        for (let i = 0; i < additionalStories.length; i++) {
+            const item = additionalStories[i];
+            storiesData.push({
+                id: item.id,
+                title: item.title,
+                origin: item.origin,
+                category: item.category,
+                body: `Dahulu kala di kawasan ${item.origin}, terdapat kisah yang sangat terkenal berjudul <strong>${item.title}</strong>. Cerita ini tergolong ke dalam jenis <em>${item.category}</em> yang diwariskan secara lisan dari generasi ke generasi oleh nenek moyang bangsa Indonesia.
+                <br><br>
+                Kisah ini menceritakan tentang perjuangan, ujian kehidupan, dan pertualangan para tokoh utama dalam menegakkan nilai-nilai kebaikan di tanah air mereka. Dalam perjalanannya, para tokoh dihadapkan pada berbagai rintangan berat, ancaman bahaya, serta pilihan moral yang menguji kejujuran, ketabahan, dan keteguhan hati mereka.
+                <br><br>
+                Melalui petualangan yang mendebarkan ini, kita diajak untuk memahami pentingnya memiliki sifat arif, bijaksana, rendah hati, serta selalu menghormati orang tua dan lingkungan sekitar. Keberanian sejati adalah keberanian yang berlandaskan pada kebenaran dan keadilan sosial bagi banyak orang.
+                <br><br>
+                Akhir dari kisah ${item.title} memberikan warisan luhur yang tidak hanya berupa nama tempat atau kearifan lokal di ${item.origin}, tetapi juga pelajaran berharga bagi generasi muda Indonesia untuk terus melestarikan warisan budaya Nusantara.`,
+                moral: item.moral,
+                hotsQuestion: item.q,
+                options: [
+                    { text: "Karena tindakan tersebut mencerminkan nilai kejujuran, penalaran kritis, dan kepedulian sosial yang mendalam.", correct: true, explanation: "Sangat tepat! Pilihan ini menganalisis implikasi moral dan logis dari cerita secara mendalam." },
+                    { text: "Karena tokoh utama memiliki kekuatan fisiknya yang tak tertandingi.", correct: false, explanation: "Kekuatan fisik semata bukan indikator utama penalaran moral HOTS." },
+                    { text: "Karena peristiwa tersebut terjadi di wilayah pesisir lautan.", correct: false, explanation: "Geografis tidak menjelaskan dasar analisis moral perilaku." },
+                    { text: "Karena tokoh utama memilih melarikan diri tanpa menyelesaikan tugas.", correct: false, explanation: "Melarikan diri bukan representasi dari nilai kepahlawanan." }
+                ]
+            });
+        }
+
+        let gameState = {
+            playerName: "Kapten Cilik",
+            unlockedLevel: 1, // 1 to 30
+            completedLevels: [],
+            score: 0,
+            gold: 0,
+            currentStoryId: 1
+        };
+
+        function loadGame() {
+            const saved = localStorage.getItem('jejak_cerita_nusantara_map');
+            if (saved) {
+                try {
+                    gameState = JSON.parse(saved);
+                } catch(e) {
+                    console.error("Error loading saved data", e);
+                }
+            }
+            updateUI();
+            renderTreasureMap();
+        }
+
+        function saveGame() {
+            localStorage.setItem('jejak_cerita_nusantara_map', JSON.stringify(gameState));
+            updateUI();
+        }
+
+        function updateUI() {
+            document.getElementById('stat-gold').innerText = gameState.gold;
+            document.getElementById('stat-score').innerText = gameState.score;
+            document.getElementById('stat-progress').innerText = `${gameState.completedLevels.length}/30`;
+            document.getElementById('player-name-display').innerText = gameState.playerName;
+        }
+
+        // Generate winding serpentine coordinates inside min-w-[950px] x 1350px canvas
+        function getIslandCoordinates() {
+            const coords = [];
+            const rows = 6;
+            const cols = 5;
+            const startX = 120;
+            const endX = 830;
+            const startY = 100;
+            const stepY = 210;
+
+            let count = 0;
+            for (let r = 0; r < rows; r++) {
+                const y = startY + r * stepY;
+                const isEven = r % 2 === 0;
+
+                for (let c = 0; c < cols; c++) {
+                    count++;
+                    if (count > 30) break;
+
+                    let x;
+                    if (isEven) {
+                        x = startX + (c * ((endX - startX) / (cols - 1)));
+                    } else {
+                        x = endX - (c * ((endX - startX) / (cols - 1)));
+                    }
+
+                    // Add subtle random jitter to make trail look hand-drawn and organic
+                    const jitterX = Math.sin(count * 2) * 20;
+                    const jitterY = Math.cos(count * 2) * 15;
+
+                    coords.push({ id: count, x: Math.round(x + jitterX), y: Math.round(y + jitterY) });
+                }
+            }
+            return coords;
+        }
+
+        function renderTreasureMap() {
+            const coords = getIslandCoordinates();
+            const container = document.getElementById('island-nodes-container');
+            container.innerHTML = '';
+
+            // Draw SVG path
+            let dPath = "";
+            coords.forEach((pt, idx) => {
+                if (idx === 0) {
+                    dPath += `M ${pt.x} ${pt.y}`;
+                } else {
+                    const prev = coords[idx - 1];
+                    const midX = (prev.x + pt.x) / 2;
+                    const midY = (prev.y + pt.y) / 2;
+                    // Curved cubic Bezier connection
+                    dPath += ` Q ${midX + (idx % 2 === 0 ? 30 : -30)} ${midY + (idx % 2 === 0 ? -30 : 30)}, ${pt.x} ${pt.y}`;
+                }
+            });
+
+            document.getElementById('trail-path-line').setAttribute('d', dPath);
+
+            // Render Island Nodes
+            coords.forEach(pt => {
+                const story = storiesData.find(s => s.id === pt.id);
+                if (!story) return;
+
+                const levelNum = story.id;
+                const isUnlocked = levelNum <= gameState.unlockedLevel;
+                const isCompleted = gameState.completedLevels.includes(levelNum);
+                const isCurrent = levelNum === gameState.unlockedLevel && !isCompleted;
+
+                const nodeEl = document.createElement('div');
+                nodeEl.style.left = `${pt.x - 45}px`;
+                nodeEl.style.top = `${pt.y - 45}px`;
+                nodeEl.className = `absolute w-24 h-24 flex flex-col items-center justify-center cursor-pointer group transition-all duration-300 z-10`;
+
+                nodeEl.onclick = () => {
+                    if (isUnlocked) {
+                        openStoryModal(story.id);
+                    } else {
+                        soundFX.playWrong();
+                        alert(`Pulau #${levelNum} (${story.title}) masih terkunci! Bacalah cerita dan selesaikan tantangan HOTS di Pulau #${levelNum - 1} terlebih dahulu.`);
+                    }
+                };
+
+                // Island Icon & Styling
+                let islandStyle = '';
+                let iconClass = '';
+
+                if (isCompleted) {
+                    islandStyle = 'bg-emerald-600 border-emerald-300 text-white shadow-lg border-2 hover:scale-110';
+                    iconClass = 'fa-solid fa-flag';
+                } else if (isCurrent) {
+                    islandStyle = 'bg-amber-500 border-amber-200 text-terracotta-950 shadow-2xl border-4 glow-active hover:scale-110';
+                    iconClass = 'fa-solid fa-ship';
+                } else {
+                    islandStyle = 'bg-slate-700/90 border-slate-500 text-slate-400 border-2 opacity-80 cursor-not-allowed';
+                    iconClass = 'fa-solid fa-lock';
+                }
+
+                nodeEl.innerHTML = `
+                    <div class="w-14 h-14 rounded-full ${islandStyle} flex items-center justify-center text-xl relative shadow-md">
+                        <i class="${iconClass}"></i>
+                        <span class="absolute -top-2 -right-1 bg-terracotta-800 text-amber-200 text-[10px] font-cartoon font-bold px-1.5 py-0.5 rounded-full border border-amber-400">
+                            #${levelNum}
+                        </span>
+                    </div>
+                    <div class="mt-1 text-center bg-pirateDark/90 border border-amber-500/60 text-amber-200 text-[11px] font-cartoon px-2 py-0.5 rounded-md shadow max-w-[110px] truncate">
+                        ${story.title}
+                    </div>
+                `;
+
+                container.appendChild(nodeEl);
+            });
+        }
+
+        function openStoryModal(storyId) {
+            soundFX.playCoin();
+            const story = storiesData.find(s => s.id === storyId);
+            if (!story) return;
+
+            gameState.currentStoryId = storyId;
+
+            document.getElementById('story-island-badge').innerText = `Pulau #${story.id} dari 30`;
+            document.getElementById('story-title').innerText = story.title;
+            document.getElementById('story-origin').innerText = story.origin;
+            document.getElementById('story-category').innerText = story.category;
+            document.getElementById('story-body').innerHTML = story.body;
+            document.getElementById('story-moral').innerText = `"${story.moral}"`;
+
+            document.getElementById('story-modal').classList.remove('hidden');
+        }
+
+        function closeStoryModal() {
+            document.getElementById('story-modal').classList.add('hidden');
+        }
+
+        function startHotsQuiz() {
+            closeStoryModal();
+            const story = storiesData.find(s => s.id === gameState.currentStoryId);
+            if (!story) return;
+
+            document.getElementById('quiz-island-title').innerText = `${story.title} (Pulau #${story.id})`;
+            document.getElementById('quiz-question').innerText = story.hotsQuestion;
+
+            const optionsContainer = document.getElementById('quiz-options');
+            optionsContainer.innerHTML = '';
+
+            const feedbackBox = document.getElementById('quiz-feedback');
+            feedbackBox.className = 'mt-4 p-4 rounded-xl border-2 hidden';
+            feedbackBox.innerHTML = '';
+
+            document.getElementById('btn-next-level').classList.add('hidden');
+
+            story.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full text-left p-3.5 rounded-xl border-2 border-amber-300 bg-white hover:bg-amber-50 text-amber-950 font-medium text-xs md:text-sm transition flex items-start gap-3 shadow-sm';
+                btn.innerHTML = `
+                    <span class="w-6 h-6 rounded-full bg-amber-200 text-amber-900 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">${String.fromCharCode(65 + idx)}</span>
+                    <span class="flex-1">${opt.text}</span>
+                `;
+
+                btn.onclick = () => checkAnswer(opt, story);
+                optionsContainer.appendChild(btn);
+            });
+
+            document.getElementById('quiz-modal').classList.remove('hidden');
+        }
+
+        function closeQuizModal() {
+            document.getElementById('quiz-modal').classList.add('hidden');
+        }
+
+        function checkAnswer(selectedOption, story) {
+            const feedbackBox = document.getElementById('quiz-feedback');
+            feedbackBox.classList.remove('hidden');
+
+            if (selectedOption.correct) {
+                soundFX.playSuccess();
+                confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
+
+                feedbackBox.className = 'mt-4 p-4 rounded-xl border-2 bg-emerald-100 border-emerald-500 text-emerald-950 text-xs md:text-sm';
+                feedbackBox.innerHTML = `
+                    <div class="flex items-center gap-2 font-bold text-emerald-800 text-sm md:text-base mb-1">
+                        <i class="fa-solid fa-circle-check text-emerald-600 text-xl"></i> Jawaban Analisis HOTS Sangat Tepat! (+100 Emas & +50 Poin)
+                    </div>
+                    <p class="leading-relaxed">${selectedOption.explanation}</p>
+                `;
+
+                if (!gameState.completedLevels.includes(story.id)) {
+                    gameState.completedLevels.push(story.id);
+                    gameState.gold += 100;
+                    gameState.score += 50;
+
+                    if (story.id === gameState.unlockedLevel && gameState.unlockedLevel < 30) {
+                        gameState.unlockedLevel += 1;
+                    }
+
+                    saveGame();
+                    renderTreasureMap();
+                }
+
+                document.getElementById('btn-next-level').classList.remove('hidden');
+
+            } else {
+                soundFX.playWrong();
+                feedbackBox.className = 'mt-4 p-4 rounded-xl border-2 bg-red-100 border-red-500 text-red-950 text-xs md:text-sm';
+                feedbackBox.innerHTML = `
+                    <div class="flex items-center gap-2 font-bold text-red-800 text-sm md:text-base mb-1">
+                        <i class="fa-solid fa-circle-xmark text-red-600 text-xl"></i> Belum Tepat, Coba Analisis Cerita Kembali!
+                    </div>
+                    <p class="leading-relaxed">${selectedOption.explanation}</p>
+                `;
+            }
+        }
+
+        function completeLevelAndUnlockNext() {
+            closeQuizModal();
+            if (gameState.completedLevels.length === 30) {
+                confetti({ particleCount: 250, spread: 120, origin: { y: 0.4 } });
+                alert("SELAMAT KAPTEN PETUALANG! Kamu telah menaklukkan seluruh 30 Pulau Cerita Nusantara dan menemukan Harta Karun Utama Kebudayaan Indonesia!");
+            }
+        }
+
+        function openMateriModal() {
+            soundFX.playCoin();
+            document.getElementById('materi-modal').classList.remove('hidden');
+        }
+        function closeMateriModal() {
+            document.getElementById('materi-modal').classList.add('hidden');
+        }
+
+        function openProfileModal() {
+            soundFX.playCoin();
+            document.getElementById('profile-modal').classList.remove('hidden');
+        }
+        function closeProfileModal() {
+            document.getElementById('profile-modal').classList.add('hidden');
+        }
+
+        function openNameModal() {
+            document.getElementById('input-player-name').value = gameState.playerName;
+            document.getElementById('name-modal').classList.remove('hidden');
+        }
+
+        function savePlayerName() {
+            const name = document.getElementById('input-player-name').value.trim();
+            if (name) {
+                gameState.playerName = name;
+                saveGame();
+            }
+            document.getElementById('name-modal').classList.add('hidden');
+        }
+
+        function resetProgressConfirm() {
+            if (confirm("Apakah kamu yakin ingin meriset seluruh kemajuan dan harta emas kembali ke Pulau #1?")) {
+                gameState.unlockedLevel = 1;
+                gameState.completedLevels = [];
+                gameState.score = 0;
+                gameState.gold = 0;
+                saveGame();
+                renderTreasureMap();
+            }
+        }
+
+        // Initialize App
+        window.onload = function() {
+            loadGame();
+            if (!localStorage.getItem('jejak_cerita_nusantara_map')) {
+                openNameModal();
+            }
+        };
+    </script>
+</body>
+</html>
